@@ -1,0 +1,184 @@
+/*/
+ * Copyright (c) 2015-2018 LAAS/CNRS
+ * All rights reserved.
+ *
+ * Redistribution and use  in source  and binary  forms,  with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *   1. Redistributions of  source  code must retain the  above copyright
+ *      notice and this list of conditions.
+ *   2. Redistributions in binary form must reproduce the above copyright
+ *      notice and  this list of  conditions in the  documentation and/or
+ *      other materials provided with the distribution.
+ *
+ *                                      Anthony Mallet on Thu May 31 2018
+ */
+#pragma require "openrobots2-idl >= 2.0"
+
+#include "or/pose/pose_estimator.gen"
+#include "or/pose/rigid_body.gen"
+#include "or/robot/uav.gen"
+
+component uavpos {
+  version		"1.0";
+  email			"openrobots@laas.fr";
+  lang			"c";
+  require		"genom3 >= 2.99.26";
+  codels-require	"eigen3";
+
+  uses		or_uav;
+  uses		or_pose_estimator;
+
+  port in	or_pose_estimator::state state;
+  port in	or_rigid_body::state reference;
+
+  exception e_input;
+  exception e_sys { short code; string<128> what; };
+
+  native log_s;
+
+  ids {
+    struct body_s {
+      double J[3 * 3]; /* inertia matrix */
+      double mass;
+    } body;
+
+    struct servo_s {
+      struct sat_s { double x, v, ix; } sat;
+
+      struct gain_s {
+        double Kpxy, Kpz, Kvxy, Kvz;
+        double Kixy, Kiz;
+      } gain;
+
+      struct emerg_s {
+        double descent;
+        double dx, dv;
+      } emerg;
+    } servo;
+
+    or_rigid_body::state reference;
+    or_rigid_body::state desired;
+
+    /* logging */
+    log_s log;
+  };
+
+  attribute set_saturation(in servo.sat);
+  attribute set_servo_gain(in servo.gain);
+  attribute set_mass(in body.mass);
+  attribute set_geom(in body.J =: "Inertia matrix");
+  attribute set_emerg(in servo.emerg) {
+    validate uavpos_set_emerg(local inout emerg);
+  };
+
+  attribute get_servo_parameters(out servo);
+  attribute get_body_parameters(out body);
+  attribute get_reference(out reference);
+
+
+  /* --- control ----------------------------------------------------------- */
+
+  const unsigned short control_period_ms = 1;
+
+  task main {
+    period control_period_ms ms;
+
+    codel<start> uavpos_main_start(out ::ids)
+      yield init;
+    codel<init> uavpos_main_init(ids in reference, out uav_input)
+      yield pause::init, control;
+    codel<control> uavpos_main_control(in body, inout servo,
+                                       in state,
+                                       ids inout reference, inout desired,
+                                       inout log, out uav_input)
+      yield pause::control;
+    codel<stop> mk_main_stop(out uav_input)
+      yield ether;
+  };
+
+
+  activity servo() {
+    doc		"Track a desired position";
+    task	main;
+
+    codel<start> uavpos_servo_loop(port in reference::in, ids out reference)
+      yield pause::start, ether;
+
+    throw e_input;
+  };
+
+  function set_state(
+    in or::t3d::pos pos =: "Position",
+    in or::t3d::att att =: "Orientation",
+    in or::t3d::vel vel =: "Linear velocity",
+    in or::t3d::avel avel =: "Angular velocity",
+    in or::t3d::acc acc =: "Acceleration",
+    in or::t3d::aacc aacc =: "Angular acceleration",
+    in or::t3d::jerk jerk =: "Linear jerk",
+    in or::t3d::snap snap =: "Linear snap") {
+    doc		"Set the desired state";
+
+    codel uavpos_set_state(in pos, in att,
+                           in vel, in avel,
+                           in acc, in aacc,
+                           in jerk, in snap,
+                           ids out reference);
+
+    interrupt servo;
+  };
+
+  function set_position(
+    in double x, in double y, in double z, in double yaw) {
+    doc		"Set the desired position";
+
+    codel uavpos_set_position(in x, in y, in z, in yaw, ids out reference);
+
+    interrupt servo;
+  };
+
+  activity set_current_position() {
+    doc		"Set the desired position";
+    task	main;
+
+    codel<start> uavpos_set_current_position(in state, ids out reference)
+      yield ether;
+
+    interrupt servo;
+    throw e_input;
+  };
+
+  function stop() {
+    doc		"Stop tracking a desired position";
+
+    codel uavpos_servo_stop(ids out reference);
+
+    interrupt servo;
+  };
+
+
+  /* --- logging ----------------------------------------------------------- */
+
+  function log(in string<64> path = "/tmp/uavpos.log": "Log file name",
+               in unsigned long decimation = 1: "Reduced logging frequency") {
+    doc		"Log controller data";
+
+    codel uavpos_log(in path, in decimation, inout log);
+
+    throw e_sys;
+  };
+
+  function log_stop() {
+    doc		"Stop logging";
+
+    codel uavpos_log_stop(out log);
+  };
+
+  function log_info(out unsigned long miss = :"Missed log entries",
+                    out unsigned long total = :"Total log entries") {
+    doc		"Show missed log entries";
+
+    codel uavpos_log_info(in log, out miss, out total);
+  };
+};
