@@ -31,12 +31,13 @@
 /** Codel uavpos_main_start of task main.
  *
  * Triggered by uavpos_start.
- * Yields to uavpos_init.
+ * Yields to uavpos_control.
  */
 genom_event
-uavpos_main_start(uavpos_ids *ids, const genom_context self)
+uavpos_main_start(uavpos_ids *ids, const uavpos_uav_input *uav_input,
+                  const genom_context self)
 {
-  (void)self; /* -Wunused-parameter */
+  or_uav_input *input_data;
 
   ids->body = (uavpos_ids_body_s){
     /* mikrokopter quadrotors defaults */
@@ -64,6 +65,8 @@ uavpos_main_start(uavpos_ids *ids, const genom_context self)
   };
 
   ids->reference = (or_rigid_body_state){
+    .ts = { .sec = 0, .nsec = 0 },
+    .intrinsic = false,
     .pos._present = false,
     .att._present = false,
     .vel._present = false,
@@ -74,16 +77,17 @@ uavpos_main_start(uavpos_ids *ids, const genom_context self)
     .snap._present = false,
   };
 
-  ids->desired = (or_rigid_body_state){
-    .pos._present = false,
-    .att._present = false,
-    .vel._present = false,
-    .avel._present = false,
-    .acc._present = false,
-    .aacc._present = false,
-    .jerk._present = false,
-    .snap._present = false,
+  input_data = uav_input->data(self);
+  *input_data = (or_uav_input){
+    .ts = { .sec = 0, .nsec = 0 },
+    .intrinsic = false,
+    .thrust = { ._present = false },
+    .att = { ._present = false },
+    .avel = { ._present = false },
+    .aacc = { ._present = false }
   };
+  uav_input->write(self);
+
 
   /* init logging */
   ids->log = malloc(sizeof(*ids->log));
@@ -102,46 +106,7 @@ uavpos_main_start(uavpos_ids *ids, const genom_context self)
     .decimation = 1, .missed = 0, .total = 0
   };
 
-  return uavpos_init;
-}
-
-
-/** Codel uavpos_main_init of task main.
- *
- * Triggered by uavpos_init.
- * Yields to uavpos_pause_init, uavpos_control.
- */
-genom_event
-uavpos_main_init(const or_rigid_body_state *reference,
-                 const uavpos_uav_input *uav_input,
-                 const genom_context self)
-{
-  or_uav_input *input_data;
-  struct timeval tv;
-
-  /* switch to servo mode upon reception of the first valid position */
-  if (reference->pos._present) return uavpos_control;
-
-  /* output zero (minimal) thrust */
-  input_data = uav_input->data(self);
-  if (!input_data) return uavpos_pause_init;
-
-  gettimeofday(&tv, NULL);
-  input_data->ts.sec = tv.tv_sec;
-  input_data->ts.nsec = tv.tv_usec * 1000;
-  input_data->intrinsic = false;
-
-  input_data->thrust = (optional_or_rb3d_force){
-    ._present = true,
-    ._value = { .x = 0., .y = 0., .z = 0. }
-  };
-  input_data->att._present = false;
-  input_data->avel._present = false;
-  input_data->aacc._present = false;
-
-  uav_input->write(self);
-
-  return uavpos_pause_init;
+  return uavpos_control;
 }
 
 
@@ -154,8 +119,7 @@ genom_event
 uavpos_main_control(const uavpos_ids_body_s *body,
                     uavpos_ids_servo_s *servo,
                     const uavpos_state *state,
-                    or_rigid_body_state *reference,
-                    or_rigid_body_state *desired, uavpos_log_s **log,
+                    or_rigid_body_state *reference, uavpos_log_s **log,
                     const uavpos_uav_input *uav_input,
                     const genom_context self)
 {
@@ -164,7 +128,8 @@ uavpos_main_control(const uavpos_ids_body_s *body,
   struct timeval tv;
   int s;
 
-  (void)desired;
+  /* publish only upon reception of the first valid position */
+  if (reference->ts.sec == 0) return uavpos_pause_control;
 
   input_data = uav_input->data(self);
   if (!input_data) return uavpos_pause_control;

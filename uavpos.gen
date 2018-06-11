@@ -59,7 +59,6 @@ component uavpos {
     } servo;
 
     or_rigid_body::state reference;
-    or_rigid_body::state desired;
 
     /* logging */
     log_s log;
@@ -85,13 +84,10 @@ component uavpos {
   task main {
     period control_period_ms ms;
 
-    codel<start> uavpos_main_start(out ::ids)
-      yield init;
-    codel<init> uavpos_main_init(ids in reference, out uav_input)
-      yield pause::init, control;
+    codel<start> uavpos_main_start(out ::ids, out uav_input)
+      yield control;
     codel<control> uavpos_main_control(in body, inout servo,
-                                       in state,
-                                       ids inout reference, inout desired,
+                                       in state, ids inout reference,
                                        inout log, out uav_input)
       yield pause::control;
     codel<stop> mk_main_stop(out uav_input)
