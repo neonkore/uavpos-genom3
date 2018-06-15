@@ -23,6 +23,7 @@
  */
 #include "acuavpos.h"
 
+#include <sys/time.h>
 #include <aio.h>
 #include <err.h>
 #include <unistd.h>
@@ -237,6 +238,7 @@ uavpos_controller(const uavpos_ids_body_s *body,
     if (log->req.aio_fildes >= 0 && !log->pending) {
       double d;
       double roll, pitch, yaw;
+      struct timeval tv;
 
       d = hypot(Rd(0,0), Rd(1,0));
       if (fabs(d) > 1e-10) {
@@ -248,11 +250,15 @@ uavpos_controller(const uavpos_ids_body_s *body,
       }
       pitch = atan2(-Rd(2,0), d);
 
+      gettimeofday(&tv, NULL);
+      d =
+        tv.tv_sec - state->ts.sec + (tv.tv_usec * 1e3 - state->ts.nsec)*1e-9;
+
       log->req.aio_nbytes = snprintf(
         log->buffer, sizeof(log->buffer),
         "%s" uavpos_log_fmt "\n",
         log->skipped ? "\n" : "",
-        state->ts.sec, state->ts.nsec,
+        state->ts.sec, state->ts.nsec, d,
         f(0), f(1), f(2),
         xd(0), xd(1), xd(2), roll, pitch, yaw,
         vd(0), vd(1), vd(2), wd(0), wd(1), wd(2),

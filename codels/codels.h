@@ -73,14 +73,14 @@ struct uavpos_log_s {
 
 # define uavpos_g	" %g "
 # define uavpos_log_header_fmt                                          \
-  "ts "                                                                 \
+  "ts delay "                                                           \
   "fx fy fz "                                                           \
   "xd yd zd rolld pitchd yawd "                                         \
   "vxd vyd vzd wxd wyd wzd "                                            \
   "axd ayd azd "                                                        \
   "e_x e_y e_z e_vx e_vy e_vz e_rx e_ry e_rz e_wx e_wy e_wz"
 # define uavpos_log_fmt                                                 \
-  "%d.%09d "                                                            \
+  "%d.%09d " uavpos_g                                                   \
   uavpos_g uavpos_g uavpos_g                                            \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
