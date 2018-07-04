@@ -240,6 +240,28 @@ uavpos_servo_loop(const uavpos_reference *in,
   return uavpos_pause_start;
 }
 
+/** Codel uavpos_servo_stop of activity servo.
+ *
+ * Triggered by uavpos_stop.
+ * Yields to uavpos_ether.
+ * Throws uavpos_e_input.
+ */
+genom_event
+uavpos_servo_stop(or_rigid_body_state *reference,
+                  const genom_context self)
+{
+  (void)self; /* -Wunused-parameter */
+
+  reference->vel._present = false;
+  reference->avel._present = false;
+  reference->acc._present = false;
+  reference->aacc._present = false;
+  reference->jerk._present = false;
+  reference->snap._present = false;
+
+  return uavpos_ether;
+}
+
 
 /* --- Activity set_current_position ------------------------------------ */
 

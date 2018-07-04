@@ -101,6 +101,8 @@ component uavpos {
 
     codel<start> uavpos_servo_loop(port in reference::in, ids out reference)
       yield pause::start, ether;
+    codel<stop> uavpos_servo_stop(ids out reference)
+      yield ether;
 
     throw e_input;
   };
@@ -147,8 +149,6 @@ component uavpos {
 
   function stop() {
     doc		"Stop tracking a desired position";
-
-    codel uavpos_servo_stop(ids out reference);
 
     interrupt servo;
   };
