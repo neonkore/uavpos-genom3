@@ -78,14 +78,13 @@ struct uavpos_log_s {
   "xd yd zd rolld pitchd yawd "                                         \
   "vxd vyd vzd wxd wyd wzd "                                            \
   "axd ayd azd "                                                        \
-  "e_x e_y e_z e_vx e_vy e_vz e_rx e_ry e_rz e_wx e_wy e_wz"
+  "e_x e_y e_z e_vx e_vy e_vz"
 # define uavpos_log_fmt                                                 \
   "%d.%09d " uavpos_g                                                   \
   uavpos_g uavpos_g uavpos_g                                            \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
   uavpos_g uavpos_g uavpos_g                                            \
-  uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g
 };
 

@@ -61,13 +61,10 @@ uavpos_controller(const uavpos_ids_body_s *body,
   Quaternion<double> qd;
   Vector3d xd, vd, wd, ad;
 
-  Matrix3d R;
-  Quaternion<double> q;
-  Vector3d x, v, w;
+  Vector3d x, v;
 
-  Vector3d ex, ev, eR, ew;
+  Vector3d ex, ev;
   static Vector3d Iex;
-  Matrix3d E;
 
   Vector3d f;
 
@@ -253,7 +250,6 @@ uavpos_controller(const uavpos_ids_body_s *body,
     if (log->req.aio_fildes >= 0 && !log->pending) {
       double d;
       double roll, pitch, yaw;
-      struct timeval tv;
 
       d = hypot(Rd(0,0), Rd(1,0));
       if (fabs(d) > 1e-10) {
@@ -265,21 +261,18 @@ uavpos_controller(const uavpos_ids_body_s *body,
       }
       pitch = atan2(-Rd(2,0), d);
 
-      gettimeofday(&tv, NULL);
-      d =
-        tv.tv_sec - state->ts.sec + (tv.tv_usec * 1e3 - state->ts.nsec)*1e-9;
-
       log->req.aio_nbytes = snprintf(
         log->buffer, sizeof(log->buffer),
         "%s" uavpos_log_fmt "\n",
         log->skipped ? "\n" : "",
-        state->ts.sec, state->ts.nsec, d,
+        uav_input->ts.sec, uav_input->ts.nsec,
+        uav_input->ts.sec - state->ts.sec +
+        (uav_input->ts.nsec - state->ts.nsec)*1e-9,
         f(0), f(1), f(2),
         xd(0), xd(1), xd(2), roll, pitch, yaw,
         vd(0), vd(1), vd(2), wd(0), wd(1), wd(2),
         ad(0), ad(1), ad(2),
-        ex(0), ex(1), ex(2), ev(0), ev(1), ev(2),
-        eR(0), eR(1), eR(2), ew(0), ew(1), ew(2));
+        ex(0), ex(1), ex(2), ev(0), ev(1), ev(2));
 
       if (aio_write(&log->req)) {
         warn("log");

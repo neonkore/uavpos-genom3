@@ -126,7 +126,6 @@ uavpos_main_control(const uavpos_ids_body_s *body,
   const or_pose_estimator_state *state_data = NULL;
   or_uav_input *input_data;
   struct timeval tv;
-  int s;
 
   /* publish only upon reception of the first valid position */
   if (reference->ts.sec == 0) return uavpos_pause_control;
@@ -136,6 +135,9 @@ uavpos_main_control(const uavpos_ids_body_s *body,
   gettimeofday(&tv, NULL);
 
   /* reset control by default */
+  input_data->ts.sec = tv.tv_sec;
+  input_data->ts.nsec = tv.tv_usec * 1000;
+  input_data->intrinsic = false;
   input_data->thrust._present = false;
   input_data->att._present = false;
   input_data->avel._present = false;
@@ -160,21 +162,12 @@ uavpos_main_control(const uavpos_ids_body_s *body,
   }
 
   /* position controller */
-  s = uavpos_controller(body, servo, state_data, reference, *log, input_data);
-  if (s) return uavpos_pause_control;
+  uavpos_controller(body, servo, state_data, reference, *log, input_data);
+
 
   /* output */
 output:
-  if (state_data) {
-    input_data->ts = state_data->ts;
-  } else {
-    input_data->ts.sec = tv.tv_sec;
-    input_data->ts.nsec = tv.tv_usec * 1000;
-  }
-  input_data->intrinsic = false;
-
   uav_input->write(self);
-
   return uavpos_pause_control;
 }
 
