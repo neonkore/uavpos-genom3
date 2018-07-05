@@ -28,6 +28,7 @@
 #include <err.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -72,8 +73,7 @@ uavpos_controller(const uavpos_ids_body_s *body,
 
   int i;
 
-  static bool emerg;
-  bool emerg_x, emerg_v;
+  static bool emerg_x, emerg_v;
 
   /* gains */
   const Array3d Kp(servo->gain.Kpxy, servo->gain.Kpxy, servo->gain.Kpz);
@@ -128,11 +128,26 @@ uavpos_controller(const uavpos_ids_body_s *body,
     x << state->pos._value.x, state->pos._value.y, state->pos._value.z;
     if (!desired->pos._present)
       xd = x + Eigen::Vector3d(0, 0, -5e-2);
+
+    if (emerg_x)
+      warnx("recovered accurate position estimation");
     emerg_x = false;
   } else {
+    if (!emerg_x)
+      warnx(
+        "emergency: inaccurate position estimation (stddev %g)",
+        state->pos._present ?
+        std::sqrt(std::max(
+                    std::max(
+                      state->pos_cov._value.cov[0],
+                      state->pos_cov._value.cov[2]),
+                    state->pos_cov._value.cov[5])) :
+        nan(""));
     emerg_x = true;
+
     x = xd;
     Iex << 0., 0., 0.;
+    ad = Eigen::Vector3d(0, 0, - servo->emerg.descent);
   }
 
   if (state->vel._present && !std::isnan(state->vel._value.vx) &&
@@ -141,25 +156,25 @@ uavpos_controller(const uavpos_ids_body_s *body,
       state->vel_cov._value.cov[2] < servo->emerg.dv &&
       state->vel_cov._value.cov[5] < servo->emerg.dv) {
     v << state->vel._value.vx, state->vel._value.vy, state->vel._value.vz;
+
+    if (emerg_v)
+      warnx("recovered accurate velocity estimation");
     emerg_v = false;
   } else {
+    if (!emerg_v)
+      warnx(
+        "emergency: inaccurate velocity estimation (stddev %g)",
+        state->vel._present ?
+        std::sqrt(std::max(
+                    std::max(
+                      state->vel_cov._value.cov[0],
+                      state->vel_cov._value.cov[2]),
+                    state->vel_cov._value.cov[5])) :
+        nan(""));
     emerg_v = true;
+
     v = vd;
-  }
-
-  if (emerg_x || emerg_v)
     ad = Eigen::Vector3d(0, 0, - servo->emerg.descent);
-
-  if (emerg_x || emerg_v) {
-    if (!emerg) {
-      warnx("emergency descent due to uncertain state estimation");
-      emerg = true;
-    }
-  } else {
-    if (emerg) {
-      warnx("recovered from emergency");
-      emerg = false;
-    }
   }
 
 
@@ -195,7 +210,7 @@ uavpos_controller(const uavpos_ids_body_s *body,
 
 
   /* output */
-  uav_input->intrinsic = true;
+  uav_input->intrinsic = false;
 
   uav_input->thrust._present = true;
   uav_input->thrust._value.x = f(0);
