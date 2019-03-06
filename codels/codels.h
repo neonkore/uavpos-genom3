@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018 LAAS/CNRS
+ * Copyright (c) 2016-2019 LAAS/CNRS
  * All rights reserved.
  *
  * Redistribution  and  use  in  source  and binary  forms,  with  or  without
@@ -77,14 +77,14 @@ struct uavpos_log_s {
   "fx fy fz "                                                           \
   "xd yd zd rolld pitchd yawd "                                         \
   "vxd vyd vzd wxd wyd wzd "                                            \
-  "axd ayd azd "                                                        \
+  "axd ayd azd awxd awyd awzd "                                         \
   "e_x e_y e_z e_vx e_vy e_vz"
 # define uavpos_log_fmt                                                 \
   "%d.%09d " uavpos_g                                                   \
   uavpos_g uavpos_g uavpos_g                                            \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
-  uavpos_g uavpos_g uavpos_g                                            \
+  uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g                 \
   uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g uavpos_g
 };
 

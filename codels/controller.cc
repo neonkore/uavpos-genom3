@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 LAAS/CNRS
+ * Copyright (c) 2018-2019 LAAS/CNRS
  * All rights reserved.
  *
  * Redistribution  and  use  in  source  and binary  forms,  with  or  without
@@ -59,7 +59,7 @@ uavpos_controller(const uavpos_ids_body_s *body,
 
   Matrix3d Rd;
   Quaternion<double> qd;
-  Vector3d xd, vd, wd, ad;
+  Vector3d xd, vd, wd, ad, awd;
 
   Vector3d x, v;
 
@@ -112,8 +112,18 @@ uavpos_controller(const uavpos_ids_body_s *body,
       desired->acc._value.ax,
       desired->acc._value.ay,
       desired->acc._value.az;
-  } else
+  } else {
     ad << 0., 0., 0.;
+  }
+
+  if (desired->aacc._present) {
+    awd <<
+      desired->aacc._value.awx,
+      desired->aacc._value.awy,
+      desired->aacc._value.awz;
+  } else {
+    awd << 0., 0., 0.;
+  }
 
 
   /* current state */
@@ -225,7 +235,10 @@ uavpos_controller(const uavpos_ids_body_s *body,
   uav_input->avel._value.wy = wd(1);
   uav_input->avel._value.wz = wd(2);
 
-  uav_input->aacc._present = false;
+  uav_input->aacc._present = true;
+  uav_input->aacc._value.awx = awd(0);
+  uav_input->aacc._value.awy = awd(1);
+  uav_input->aacc._value.awz = awd(2);
 
 
   /* logging */
@@ -271,7 +284,7 @@ uavpos_controller(const uavpos_ids_body_s *body,
         f(0), f(1), f(2),
         xd(0), xd(1), xd(2), roll, pitch, yaw,
         vd(0), vd(1), vd(2), wd(0), wd(1), wd(2),
-        ad(0), ad(1), ad(2),
+        ad(0), ad(1), ad(2), awd(0), awd(1), awd(2),
         ex(0), ex(1), ex(2), ev(0), ev(1), ev(2));
 
       if (aio_write(&log->req)) {
