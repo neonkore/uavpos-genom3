@@ -48,6 +48,7 @@ uavpos_main_start(uavpos_ids *ids, const uavpos_uav_input *uav_input,
     },
 
     .mass = 1.0,
+    .rxy = 0.0,
   };
 
   ids->servo = (uavpos_ids_servo_s){

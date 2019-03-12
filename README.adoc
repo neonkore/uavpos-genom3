@@ -282,6 +282,19 @@ a|.Inputs
 
 '''
 
+[[set_xyradius]]
+=== set_xyradius (attribute)
+
+[role="small", width="50%", float="right", cols="1"]
+|===
+a|.Inputs
+[disc]
+ * `double` `rxy` Cylindric boundary radius (m)
+
+|===
+
+'''
+
 [[set_emerg]]
 === set_emerg (attribute)
 
@@ -350,6 +363,7 @@ a|.Outputs
  * `struct ::uavpos::ids::body_s` `body`
  ** `double` `J[9]`
  ** `double` `mass`
+ ** `double` `rxy`
 
 |===
 

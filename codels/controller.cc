@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 LAAS/CNRS
+ * Copyright (c) 2018-2019,2021 LAAS/CNRS
  * All rights reserved.
  *
  * Redistribution  and  use  in  source  and binary  forms,  with  or  without
@@ -67,6 +67,8 @@ uavpos_controller(const uavpos_ids_body_s *body,
   static Vector3d Iex;
 
   Vector3d f;
+  Vector3d b3, b3d, k, k1, k2;
+  double thrust, theta, theta_max, theta_min, c1, c2;
 
   int i;
 
@@ -201,19 +203,58 @@ uavpos_controller(const uavpos_ids_body_s *body,
     if (fabs(ev(i)) > servo->sat.v) ev(i) = copysign(servo->sat.v, ev(i));
 
 
-  /* desired orientation matrix */
+  /* desired thrust */
   f =
     - Kp * ex.array() - Kv * ev.array() - Ki * Iex.array()
     + body->mass * (Eigen::Vector3d(0, 0, 9.81) + ad).array();
 
-  Rd.col(2) = f.normalized();
 
-  Rd.col(1) = Rd.col(2).cross(qd.matrix().col(0));
-  Rd.col(1).normalize();
+  /* desired orientation */
+  if (body->rxy < 1e-3)
+    b3d = f.normalized(); /* trivial solution without full actuation */
+  else {
+    b3d = qd.matrix().col(2).normalized();
 
+    k = b3d.cross(f);
+    c1 = k.norm();
+    if (c1 > 1e-3 /* f not parallel to b3d */) {
+      k /= c1;
+      k1 = k.cross(b3d);
+      k2 = k * k.dot(b3d);
+
+      thrust = f.norm();
+      if (thrust > body->rxy) {
+        c2 = std::sqrt(thrust * thrust - body->rxy * body->rxy);
+        theta_max = std::asin(c1 / thrust);
+        theta_min = 0.;
+
+        /* optimize until the thrust is acceptable */
+        b3 = b3d;
+        while(theta_max - theta_min > 1e-3) {
+          theta = (theta_min + theta_max) / 2.;
+          b3d = b3 * std::cos(theta) +
+                k1 * std::sin(theta) + k2 * (1. - std::cos(theta));
+
+          (f.dot(b3d) >= c2 ? theta_max : theta_min) = theta;
+        }
+      }
+    }
+  }
+
+  Rd.col(2) = b3d;
+  Rd.col(1) = Rd.col(2).cross(qd.matrix().col(0)).normalized();
   Rd.col(0) = Rd.col(1).cross(Rd.col(2));
 
   qd = Quaternion<double>(Rd);
+
+
+  /* limit thrust in the XY plane */
+  k = Rd.transpose() * f;
+  c1 = k.head<2>().norm();
+  if (c1 > body->rxy) {
+    k.head<2>() *= body->rxy / c1;
+    f = Rd * k;
+  }
 
 
   /* output */
