@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015-2018 LAAS/CNRS
+# Copyright (c) 2015-2018,2021 LAAS/CNRS
 # All rights reserved.
 #
 # Redistribution and use  in source  and binary  forms,  with or without
@@ -16,16 +16,18 @@
 #
 lib_LTLIBRARIES = libuavpos_codels.la
 
-libuavpos_codels_la_SOURCES=	uavpos_c_types.h
-libuavpos_codels_la_SOURCES+=	uavpos_codels.c
-libuavpos_codels_la_SOURCES+=	uavpos_main_codels.c
+libuavpos_codels_la_SOURCES  =	uavpos_c_types.h
+libuavpos_codels_la_SOURCES +=	uavpos_codels.c
+libuavpos_codels_la_SOURCES +=	uavpos_main_codels.c
 
-libuavpos_codels_la_SOURCES+=	controller.cc
-libuavpos_codels_la_SOURCES+=	codels.h
+libuavpos_codels_la_SOURCES +=  controller.cc
+libuavpos_codels_la_SOURCES +=  codels.h
 
-libuavpos_codels_la_CPPFLAGS=	$(requires_CFLAGS)
-libuavpos_codels_la_LDFLAGS=	$(requires_LIBS)
-libuavpos_codels_la_LDFLAGS+=	-release $(PACKAGE_VERSION)
+libuavpos_codels_la_CPPFLAGS =	$(requires_CFLAGS)
+libuavpos_codels_la_LIBADD   =	$(requires_LIBS)
+libuavpos_codels_la_CPPFLAGS+=	$(codels_requires_CFLAGS)
+libuavpos_codels_la_LIBADD  +=	$(codels_requires_LIBS)
+libuavpos_codels_la_LDFLAGS  =	-release $(PACKAGE_VERSION)
 
 
 # idl  mappings
