@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2015-2018 LAAS/CNRS
+// Copyright (c) 2015-2018,2021 LAAS/CNRS
 // All rights reserved.
 //
 // Redistribution and use  in source  and binary  forms,  with or without
@@ -290,11 +290,25 @@ a|.Inputs
 a|.Inputs
 [disc]
  * `struct ::uavpos::ids::servo_s::emerg_s` `emerg`
- ** `double` `descent`
- ** `double` `dx`
- ** `double` `dv`
+ ** `double` `descent` (default `"0.1"`) Vertical acceleration for emergency descent (m/s²)
+ ** `double` `dx` (default `"0.05"`) Position uncertainty threshold (m)
+ ** `double` `dv` (default `"0.2"`) Linear velocity uncertainty threshold (m/s)
 
 |===
+
+Set thresholds for emergency descent.
+
+`dx` and `dv` represent the maximum uncertainty tolerated in the
+input <<state>> for position (`dx`) and linear velocity (`dv`),
+measured as 3 times the standard deviation.
+By default, `dx` is 5cm and `dv` 20cm/s. Beyond that threshold, an
+emergency descent is started.
+
+As long as the emergency descent is active, the position error or
+linear velocity error are cancelled (i.e. the desired roll and pitch
+are set to 0) and a vertical acceleration of `descent` (by default
+-0.1 m/s²) is requested. The descent is based on the mass only,
+with no feedback, as the state is considered invalid.
 
 '''
 
