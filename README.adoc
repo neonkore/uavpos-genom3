@@ -289,7 +289,7 @@ a|.Inputs
 |===
 a|.Inputs
 [disc]
- * `double` `rxy` Cylindric boundary radius (m)
+ * `double` `rxy` Maximum lateral thrust (N)
 
 |===
 

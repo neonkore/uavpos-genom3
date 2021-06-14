@@ -69,7 +69,7 @@ component uavpos {
   attribute set_servo_gain(in servo.gain);
   attribute set_mass(in body.mass);
   attribute set_geom(in body.J =: "Inertia matrix");
-  attribute set_xyradius(in body.rxy =: "Cylindric boundary radius (m)");
+  attribute set_xyradius(in body.rxy =: "Maximum lateral thrust (N)");
   attribute set_emerg(in servo.emerg = {
     0.1 : "Vertical acceleration for emergency descent (m/s²)",
     0.05 : "Position uncertainty threshold (m)",
